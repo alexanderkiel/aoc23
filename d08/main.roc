@@ -28,9 +28,9 @@ main =
 
     input = parse inputStr
 
-    (ends, pathLen) = input |> multiWalkGraph 100000
+    (targetNodes, pathLen) = input |> multiWalkGraph 100_000_000_000
 
-    Stdout.line "End Nodes: \(ends |> List.map nodeToStr |> Str.joinWith ", ")\nPath length: \(Num.toStr pathLen)"
+    Stdout.line "End Nodes: \(targetNodes |> List.map nodeToStr |> Str.joinWith ", ")\nPath length: \(Num.toStr pathLen)"
 
 error = \_ -> Task.err 1
 
@@ -140,7 +140,7 @@ multiWalkGraph = \input, maxRounds ->
     multiWalkGraph1 input (maxRounds - 1) (.starts input, 0)
 
 multiWalkGraph1 = \input, maxRounds, state ->
-    (targetNodes, pathLen) = multiWalkGraph2 input state
+        (targetNodes, pathLen) = multiWalkGraph2 input state
     if List.all targetNodes isTerminal || maxRounds == 0 then
         (targetNodes, pathLen)
     else
