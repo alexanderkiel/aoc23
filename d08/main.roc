@@ -1,7 +1,9 @@
-app "d08"
-    packages { pf: "https://github.com/roc-lang/basic-cli/releases/download/0.7.1/Icc3xJoIixF3hCcfXrDwLCu4wQHtNdPyoJkEbkgIElA.tar.br" }
-    imports [pf.File, pf.Path, pf.Stdout, pf.Task.{ await, onErr }]
-    provides [main] to pf
+app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.10.0/vNe6s9hWzoTZtFmNkvEICPErI9ptji_ySjicO6CkucY.tar.br" }
+
+import pf.File
+import pf.Path
+import pf.Stdout
+import pf.Task exposing [await, mapErr]
 
 Dir : [L, R]
 
@@ -19,7 +21,7 @@ Input : {
 maxNode : Node
 maxNode = 0b11001_11001_11001
 
-emptyTable = parseNode "XXX" |> List.repeat (Num.toNat maxNode + 1)
+emptyTable = parseNode "XXX" |> List.repeat (Num.toU64 maxNode + 1)
 
 testInput = {
     instructions: [L, R],
@@ -48,7 +50,7 @@ testInput = {
 
 main =
     inputStr <- File.readUtf8 (Path.fromStr "input.txt")
-        |> onErr error
+        |> mapErr error
         |> await
 
     input = parse inputStr
@@ -57,9 +59,9 @@ main =
 
     result = targets |> List.map .1 |> List.walk 1 lcm
 
-    Stdout.line "Path length: \(Num.toStr result)"
+    Stdout.line "Path length: $(Num.toStr result)"
 
-error = \_ -> Task.err 1
+error = \_ -> Exit 1 ""
 
 parse = \s ->
     when Str.split s "\n" is
@@ -75,13 +77,13 @@ parse = \s ->
 
 parseInstructions = \s ->
     s
-    |> Str.graphemes
+    |> Str.toUtf8
     |> List.map parseInstruction
 
 parseInstruction = \s ->
     when s is
-        "L" -> L
-        "R" -> R
+        'L' -> L
+        'R' -> R
         _ -> crash "unknown instruction"
 
 parseStartNodes = \lines ->
@@ -97,7 +99,7 @@ parseTable = \lines, dir ->
     |> List.dropIf Str.isEmpty
     |> List.walk emptyTable \table, line ->
         (start, end) = parseTableLine line dir
-        List.set table (Num.toNat start) end
+        List.set table (Num.toU64 start) end
 
 parseTableLine = \line, dir ->
     when Str.split line "=" is
@@ -117,9 +119,9 @@ parseTableLine = \line, dir ->
                                 right |> Str.replaceFirst ")" "" |> Str.trim |> parseNode,
                             )
 
-                _ -> crash "invalid tableLines line: \(line)"
+                _ -> crash "invalid tableLines line: $(line)"
 
-        _ -> crash "invalid tableLines line: \(line)"
+        _ -> crash "invalid tableLines line: $(line)"
 
 parseNode : Str -> Node
 parseNode = \s ->
@@ -141,7 +143,7 @@ expect parseNode "ABA" == 0b00000_00001_00000
 expect parseNode "BAA" == 0b00001_00000_00000
 expect parseNode "ZZZ" == maxNode
 
-walkGraph : Input -> (Node, Nat)
+walkGraph : Input -> (Node, U64)
 walkGraph = \input ->
     (.instructions input)
     |> List.repeat 100
@@ -162,7 +164,7 @@ expect
     }
     == (parseNode "ZZZ", 1)
 
-multiWalkGraph : Input, Nat -> (List Node, Nat)
+multiWalkGraph : Input, U64 -> (List Node, U64)
 multiWalkGraph = \input, maxRounds ->
     multiWalkGraph1 input (maxRounds - 1) (.startNodes input, 0)
 
@@ -185,11 +187,11 @@ multiWalkGraph2 = \input, state ->
 expect multiWalkGraph testInput 3 == ([parseNode "AAZ", parseNode "BBZ"], 6)
 
 step = \input, node, instruction ->
-    when List.get (tableFrom input instruction) (Num.toNat node) is
+    when List.get (tableFrom input instruction) (Num.toU64 node) is
         Ok targetNode ->
             targetNode
 
-        Err _ -> crash "can't find node: \(node |> nodeToStr)"
+        Err _ -> crash "can't find node: $(node |> nodeToStr)"
 
 multiWalkGraphWithCache = \input ->
     state = (.startNodes input) |> List.map \startNode -> (startNode, 0)
@@ -241,7 +243,7 @@ expect
 
 ## Calculates the cache entry with start node and offset.
 ## Returns the target node and path length it took to reach the target node.
-calcCacheEntry : Input, (Node, Nat) -> (Node, Nat)
+calcCacheEntry : Input, (Node, U64) -> (Node, U64)
 calcCacheEntry = \input, (startNode, offset) ->
     (targetNode, pathLen) = calcCacheEntry1 input (startNode, offset)
     if isTerminal targetNode then
@@ -294,11 +296,11 @@ expect parseNode "ABC" |> nodeToStr == "ABC"
 
 tableFromList = \list ->
     List.walk list emptyTable \result, (start, end) ->
-        List.set result (Num.toNat start) end
+        List.set result (Num.toU64 start) end
 
 expect
     tableFromList [(parseNode "ZZZ", parseNode "BBB")]
-    |> List.get (Num.toNat (parseNode "ZZZ"))
+    |> List.get (Num.toU64 (parseNode "ZZZ"))
     == Ok (parseNode "BBB")
 
 gcd = \a, b -> if b == 0 then a else gcd b (a % b)
