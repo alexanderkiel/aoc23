@@ -1,9 +1,7 @@
-app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.10.0/vNe6s9hWzoTZtFmNkvEICPErI9ptji_ySjicO6CkucY.tar.br" }
+app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.15.0/SlwdbJ-3GR7uBWQo6zlmYWNYOxnvo8r6YABXD-45UOw.tar.br" }
 
 import pf.File
-import pf.Path
 import pf.Stdout
-import pf.Task exposing [await, mapErr]
 
 Dir : [L, R]
 
@@ -49,9 +47,7 @@ testInput = {
 }
 
 main =
-    inputStr <- File.readUtf8 (Path.fromStr "input.txt")
-        |> mapErr error
-        |> await
+    inputStr = File.readUtf8! "input.txt"
 
     input = parse inputStr
 
@@ -59,9 +55,7 @@ main =
 
     result = targets |> List.map .1 |> List.walk 1 lcm
 
-    Stdout.line "Path length: $(Num.toStr result)"
-
-error = \_ -> Exit 1 ""
+    Stdout.line! "Path length: $(Num.toStr result)"
 
 parse = \s ->
     when Str.split s "\n" is
